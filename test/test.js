@@ -4,7 +4,8 @@ const conf = require('./resources/config.json');
 const monitor = new MqttSubscriber(
     {
         host: conf.mqtt.host,
-        port: conf.mqtt.port
+        port: conf.mqtt.port,
+        configure:conf.stream
     });
     
 monitor.init();

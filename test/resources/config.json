@@ -3,5 +3,10 @@
     {
         "host":"localhost",
         "port":"1883"
+    },
+    "stream":
+    {
+        "topic":"/stream/001:type",
+        "json":"{\"id\":1}"
     }
 }

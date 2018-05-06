@@ -16,25 +16,26 @@ class MqttSubscriber {
             .option('-c, --context <n>', 'Add context to incoming messages')
             .option('-h, --host <n>', 'Overrides pre-configure host')
             .option('-p, --port <n>', 'Overrides pre-configure port', parseInt)
-            .option('-C, --configure <items>', 'Name of configuration topic and json',(val) => {
+            .option('-C, --configure <items>', 'Name of configuration topic and json', (val) => {
                 return val.split(',');
             })
             .parse(process.argv);
 
         this.host = program.host || config.host;
-        this.port = program.port || config.port
-        
+        this.port = program.port || config.port;
+        this.configure = (config.configure) ? config.configure : null;
+
         this.messageCallback = null;
 
         this.topic = null;
         if (program.topic || program.configure) {
-            if(program.topic) this.topic = program.topic;
-            if(program.configure) this.configure = program.configure;
+            if (program.topic) this.topic = program.topic;
+            if (program.configure) this.configure = program.configure;
         } else {
             console.log("Topic or Configuration is required (run program with -t <topic> or -C <configuration> flag)")
             process.exit();
         }
-        
+
     }
 
     _defaultMessageCallback(topic, message) {
@@ -55,16 +56,25 @@ class MqttSubscriber {
     }
 
     //Parses Configuration 
-    parseConfigure()
-    {
-        let body = 
+    parseConfigure() {
+        let body = null;
+        if (this.configure.constructor === Array)
         {
-            topic : this.configure[0],
-            json : this.configure[1],
-            configuration : JSON.parse(this.configure[1]) 
+            body = {
+                topic: this.configure[0],
+                json: this.configure[1],
+                configuration: JSON.parse(this.configure[1])
+            }
+        }
+        else {
+            body = {
+                topic: this.configure.topic,
+                json: this.configure.json,
+                configuration: JSON.parse(this.configure.json)
+            }
         }
         return body
-       
+
     }
 
     /**
@@ -82,24 +92,19 @@ class MqttSubscriber {
             port: this.port
         });
         this.client.on('connect',
-            () => 
-            {
-                if(this.configure)
-                {
+            () => {
+                if (this.configure) {
                     let conf = this.parseConfigure()
                     this.client.publish(conf.topic, conf.json)
-                    console.log(`Sent Configuration ${conf.json}`)
+                    console.log(`Sent Configuration ${conf.json} to ${conf.topic}`)
                 }
-                if(this.topic)
-                {
+                if (this.topic) {
                     console.log(`Connected, Listening to:
                 host: ${this.host} 
                 port: ${this.port} 
                 topic: ${this.topic}`);
                     this.client.subscribe(this.topic);
-                }
-                else
-                {
+                } else {
                     process.exit();
                 }
             });
