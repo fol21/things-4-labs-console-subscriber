@@ -16,6 +16,9 @@ class MqttSubscriber {
             .option('-c, --context <n>', 'Add context to incoming messages')
             .option('-h, --host <n>', 'Overrides pre-configure host')
             .option('-p, --port <n>', 'Overrides pre-configure port', parseInt)
+            .option('-C, --configure <items>', 'Name of configuration topic and json',(val) => {
+                return val.split(',');
+            })
             .parse(process.argv);
 
         this.host = program.host || config.host;
@@ -24,12 +27,14 @@ class MqttSubscriber {
         this.messageCallback = null;
 
         this.topic = null;
-        if (program.topic) {
-            this.topic = program.topic;
+        if (program.topic || program.configure) {
+            if(program.topic) this.topic = program.topic;
+            if(program.configure) this.configure = program.configure;
         } else {
-            console.log("Topic is required (run program with -t <topic> flag)")
+            console.log("Topic or Configuration is required (run program with -t <topic> or -C <configuration> flag)")
             process.exit();
         }
+        
     }
 
     _defaultMessageCallback(topic, message) {
@@ -49,6 +54,19 @@ class MqttSubscriber {
         this.messageCallback = callback;
     }
 
+    //Parses Configuration 
+    parseConfigure()
+    {
+        let body = 
+        {
+            topic : this.configure[0],
+            json : this.configure[1],
+            configuration : JSON.parse(this.configure[1]) 
+        }
+        return body
+       
+    }
+
     /**
      * Initialize console application
      * Use after setup every callback
@@ -64,12 +82,26 @@ class MqttSubscriber {
             port: this.port
         });
         this.client.on('connect',
-            () => {
-                console.log(`Connected, Listening to:
-            host: ${this.host} 
-            port: ${this.port} 
-            topic: ${this.topic}`);
-                this.client.subscribe(this.topic);
+            () => 
+            {
+                if(this.configure)
+                {
+                    let conf = this.parseConfigure()
+                    this.client.publish(conf.topic, conf.json)
+                    console.log(`Sent Configuration ${conf.json}`)
+                }
+                if(this.topic)
+                {
+                    console.log(`Connected, Listening to:
+                host: ${this.host} 
+                port: ${this.port} 
+                topic: ${this.topic}`);
+                    this.client.subscribe(this.topic);
+                }
+                else
+                {
+                    process.exit();
+                }
             });
         this.client.on('message', this.messageCallback || this._defaultMessageCallback)
     }
