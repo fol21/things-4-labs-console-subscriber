@@ -8,7 +8,9 @@ const monitor = new MqttSubscriber(
         configure:conf.stream
     });
     
-monitor.init();
+monitor.init(()=> console.log("Callback Called!"));
+
+//monitor.sendConfiguration("001/stream:type",'{\"id\" : 2}');
 
 
 // let mqtt = require('mqtt')

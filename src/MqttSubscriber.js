@@ -3,13 +3,17 @@ const mqtt = require('mqtt');
 const program = require('commander');
 
 
-
+/**
+ * 
+ * 
+ * @class MqttSubscriber
+ */
 class MqttSubscriber {
 
     constructor(config = {}) {
 
         this.program = program
-            .version('0.1.0')
+        .version('0.1.0')
             .option('-t, --topic <n>', 'Choose topic to be subscribed', (val) => {
                 return val
             })
@@ -56,17 +60,15 @@ class MqttSubscriber {
     }
 
     //Parses Configuration 
-    parseConfigure() {
+    _parseConfigure() {
         let body = null;
-        if (this.configure.constructor === Array)
-        {
+        if (this.configure.constructor === Array) {
             body = {
                 topic: this.configure[0],
                 json: this.configure[1],
                 configuration: JSON.parse(this.configure[1])
             }
-        }
-        else {
+        } else {
             body = {
                 topic: this.configure.topic,
                 json: this.configure.json,
@@ -77,37 +79,74 @@ class MqttSubscriber {
 
     }
 
+    // /**
+    //  * 
+    //  * 
+    //  * @param {string} topic 
+    //  * @param {string} json 
+    //  * @memberof MqttSubscriber
+    //  */
+    // sendConfiguration(topic, json) {
+    //     this.client.end(
+    //         () => console.log("Reconfiguring Stream...")
+    //     );
+    //     this.configure = {
+    //         topic: topic,
+    //         json: json,
+    //         configuration: JSON.parse(json)
+    //     }
+    // }
+
+
+
+
+    _connectionStarter(reconnect,callback)
+    {
+        return () => {
+            if (this.configure) {
+                let conf ;
+
+                if(reconnect) conf = this.configure; 
+                else conf = this._parseConfigure()
+                if (conf.topic.match(/(\w+)\/stream:(\w+)/g)) {
+                    this.client.publish(conf.topic, conf.json)
+                    console.log(`Sent Configuration ${conf.json} to ${conf.topic}`)
+                }
+            }
+            if (this.topic) {
+                console.log(`Connected, Listening to:
+            host: ${this.host} 
+            port: ${this.port} 
+            topic: ${this.topic}`);
+                this.client.subscribe(this.topic);
+                if(callback) callback()
+            } else {
+                process.exit();
+            }
+        } 
+    }
+
+    _clientInit()
+    {
+        this.client = mqtt.connect({
+            host: this.host,
+            port: this.port
+        });
+    }
+
     /**
      * Initialize console application
      * Use after setup every callback
      * Must be called only once
      * @memberof MqttSubscriber
      */
-    init() {
+    init(callback = null, reconnect = false) {
 
         //program.parse(process.argv);
+        this._clientInit();
 
-        this.client = mqtt.connect({
-            host: this.host,
-            port: this.port
-        });
-        this.client.on('connect',
-            () => {
-                if (this.configure) {
-                    let conf = this.parseConfigure()
-                    this.client.publish(conf.topic, conf.json)
-                    console.log(`Sent Configuration ${conf.json} to ${conf.topic}`)
-                }
-                if (this.topic) {
-                    console.log(`Connected, Listening to:
-                host: ${this.host} 
-                port: ${this.port} 
-                topic: ${this.topic}`);
-                    this.client.subscribe(this.topic);
-                } else {
-                    process.exit();
-                }
-            });
+        this.client.on('connect', this._connectionStarter(reconnect,callback));
+        //this.client.on('reconnect', this._connectionStarter)
         this.client.on('message', this.messageCallback || this._defaultMessageCallback)
     }
 
