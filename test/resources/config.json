@@ -8,5 +8,11 @@
     {
         "topic":"/stream/001:type",
         "json":"{\"id\":1}"
+    },
+    "mongodb":
+    {
+        "user": "flima",
+        "password":"!1121fol",
+        "database": "t4l-test"
     }
 }
