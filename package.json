@@ -1,6 +1,6 @@
 {
   "name": "t4l-console-susbcriber",
-  "version": "0.1.1",
+  "version": "0.2.1",
   "description": "Console for monitoring data.",
   "main": "index.js",
   "scripts": {

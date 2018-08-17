@@ -9,6 +9,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "t4l-console-susbcriber": "^0.1.0"
+    "t4l-console-susbcriber": "^0.2.1"
   }
 }
