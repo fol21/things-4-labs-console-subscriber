@@ -1,8 +1,8 @@
+const si = require('systeminformation');
+const MongoClient = require('mongodb').MongoClient;
 const MqttSubscriber = require('../index')
-let mongo = require('mongodb');
-var MongoClient = require('mongodb').MongoClient;
 
-let MongoDataClient = require('../src/db/MongoDataClient');
+const MongoDataClient = require('../src/db/MongoDataClient');
 
 const conf = require('./resources/config.json');
 //var url = `mongodb://${conf.mongodb.user}:${conf.mongodb.password}@ds018248.mlab.com:18248/t4l-test-db`;
@@ -16,17 +16,33 @@ for (let index = 0; index < 2; index++) {
 }
 
 client.start()
-.then((client) =>
- 
-client.insertMany(values).then((client) =>
-{
-    //client.insertMany([Math.random(), Math.random()]);
-    client.deleteLatests(1).then((client) => 
-    {
-        client.collectData();
-    });
-} 
-))
+    .then((client) =>{
+
+        getTemperatureBatch(4).then((temps) => 
+        {
+            client.insertMany(temps).then((client) => {
+                //client.insertMany([Math.random(), Math.random()]);
+                client.deleteLatests(1).then((client) => {
+                    client.collectData();
+                });
+            })
+        })
+    
+    })
+
+async function getTemperatureBatch(samples) {
+    try {
+        let temps = [];
+        for (let index = 0; index < samples; index++) {
+            temps.push(await si.cpuTemperature());
+        }
+        return temps
+        
+    } catch (error) {
+        console.log(error);
+    }
+
+}
 
 // MongoClient.connect(url, function (err, db) {
 //     if (err) throw err;
