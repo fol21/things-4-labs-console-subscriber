@@ -15,6 +15,11 @@ const client = new MongoDataClient(url, dbName);
 
 monitor.onMessage((topic, message) => {
     console.log(message.toString())
+    message = JSON.parse(message.toString());
+    client.start().then((client) =>
+    {
+        client.insertOne(message);
+    })
 })    
 
 monitor.init();
