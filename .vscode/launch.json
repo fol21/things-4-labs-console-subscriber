@@ -17,6 +17,13 @@
             "request": "launch",
             "name": "Launch Test",
             "program": "${workspaceFolder}/test/test.js"
-        }
+        },
+
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Example",
+            "program": "${workspaceFolder}/examples/simple-subscriber/index.js"
+        },
     ]
 }
