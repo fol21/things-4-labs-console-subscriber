@@ -8,9 +8,9 @@ const {
 
 const conf = require('./resources/config.json');
 const monitor = new MqttSubscriber({
-    host: conf.mqtt.host,
-    port: conf.mqtt.port,
-    topic: conf.mqtt.ds_topic
+    host: conf.homolog.mqtt.host,
+    port: conf.homolog.mqtt.port,
+    topic: conf.homolog.mqtt.ds_topic
 });
 
 let dbName = 't4l_test2'
@@ -24,26 +24,57 @@ monitor.onMessage((topic, message) => {
     console.log(message.toString())
     message = JSON.parse(message.toString());
     client.start().then((client) => {
+        if(message.device == "esp32"){
+            message.main = message.temperature;
+        }
         client.insertOne(message);
-        if (count >= 100) {
+        if (count >= 5) {
             count = 0;
-            client.collectData(100).then((chunk) => {
-                let timeseries = _.map(_.map(chunk, 'timestamp'), (ts) => {
-                    return momment(ts).format("YYYY-MM-DD HH:mm:ss");
+            client.collectData(5).then((chunk) => {
+                
+                // Separetes Data per device
+                let bundles = [];
+                conf.homolog.devices.forEach(device => {
+                    bundles.push({
+                        device:device,
+                        chunk:[]
+                    });
                 });
-                let temps = _.map(chunk, 'data.main');
 
-                var data = [{
-                    x: timeseries,
-                    y: temps,
-                    type: "scatter"
-                }];
+                //Separation
+                chunk.forEach(element => {
+                    bundles.find(b => b.device == element.data.device).chunk.push(element);
+                });
+                
 
-                var graphOptions = {
-                    filename: "cpu-temp_"+ graphIndex,
-                    fileopt: "overwrite"
-                };
-                plotly.plot(data, graphOptions, function (err, msg) {
+                let graphData = [];
+                bundles.forEach(bundle => {
+                    
+                    let timeseries = _.map(_.map(bundle.chunk, 'timestamp'), (ts) => {
+                        return momment(ts).format("YYYY-MM-DD HH:mm:ss");
+                    });
+                    let temps = _.map(bundle.chunk, 'data.main');
+                    graphData.push({
+                        x: timeseries,
+                        y: temps,
+                        name: bundle.device,
+                        type: "scatter"
+                    });
+                });
+
+                var layout = {
+                    xaxis: {
+                      title: "Data e Hora",
+                      autorange: true
+                    },
+                    yaxis: {
+                      title: "Temperatura [C]",
+                      autorange: true
+                    }
+                  };
+                  var graphOptions = {layout: layout, filename: "temp-devices", fileopt: "overwrite"};
+     
+                plotly.plot(graphData, graphOptions, function (err, msg) {
                     if(err)
                         console.log(err);
                     else 
